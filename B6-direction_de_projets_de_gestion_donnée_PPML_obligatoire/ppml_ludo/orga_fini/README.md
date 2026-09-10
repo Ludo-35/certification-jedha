@@ -1,103 +1,46 @@
-# FlyOnTime
+# ✈️ FlyOnTime — Prédiction de retards de vols
 
-Projet de fin de formation — prévision du retard (en minutes) des vols
-commerciaux au départ et à l'arrivée des 5 plus grands aéroports français,
-jusqu'à 72h à l'avance.
+**Bloc de certification :** B6 — Direction de projets de gestion de données (PPML)
 
-Ludo · Jedha Bootcamp · Bloc 6 (MLOps)
+## 🎯 Objectif
 
-## Architecture
+Système de prédiction des retards de vols pour les **cinq plus grands aéroports français**. L'objectif est de fournir, jusqu'à **72h en avance**, une estimation en minutes des retards au départ et à l'arrivée pour les vols commerciaux, via un dashboard de visualisation.
 
-```
-data → training/ (entraîne le modèle) → model/
-                                            │
-                     api/ (FastAPI) ───────┘  ← charge modèle + cache une fois au démarrage
-                        │  sert /predict, /health, /predictions/recent
-                        │  rafraîchit le cache automatiquement 1x/jour
-                        │  (tâche planifiée intégrée, voir refresh_cache.py)
-                        │
-                dashboard/ (Streamlit) → appelle l'API, aucune logique ML/DB
-```
+## 🧩 Approche & choix de modélisation
 
-## Structure du repo
+- **Cible unique** : `delay_minutes`, avec un flag `type` distinguant départ/arrivée, plutôt que deux modèles séparés.
+- **Fuite de données évitée** : seule la variable `scheduled_utc` est utilisable comme feature temporelle — `revised_utc`, `runway_utc` et `status` sont exclus car ils ne seraient pas disponibles au moment de la prédiction réelle.
+- **Météo** : utilisation des prévisions météo (et non des données observées `df_meteo`, qui constitueraient une fuite), avec la climatologie comme proxy en complément.
+- **Features d'historique glissant** : moyennes de retard par compagnie/aéroport, taux d'annulation, densité de trafic planifié, calendrier et vacances scolaires.
 
-| Dossier | Contenu |
-|---|---|
-| `api/` | Service FastAPI de prédiction |
-| `dashboard/` | App Streamlit consommant l'API |
-| `training/` | Script d'entraînement du modèle (exécution ponctuelle) |
-| `model/` | Modèle XGBoost entraîné (format MLflow) |
-| `cache/` | Tables de référence pré-calculées (historique, climatologie météo) |
-| `data/` | Jeux de données bruts (mouvements, météo, retards agrégés — 179 jours) |
-| `legacy/` | Anciens fichiers remplacés au cours du projet, conservés pour traçabilité |
-| `scripts/` | Utilitaires de dev (vérif S3, debug colonnes) |
+## 🏗️ Architecture
 
-## Démo — en local via Docker Compose (méthode recommandée)
+- **API FastAPI** de prédiction : contrat clair, features recalculées à la volée.
+- **Dashboard Streamlit** séparé, consommant l'API (pattern déjà validé sur le projet Getaround).
+- Les agrégats d'historique (compagnie/aéroport) utilisés par l'API sont **rafraîchis une fois par jour** (cache) plutôt que recalculés à chaque requête.
 
-Les hébergeurs cloud gratuits testés (Render, Hugging Face Spaces, Railway)
-exigent tous désormais une carte bancaire enregistrée, même sur leurs tiers
-gratuits. Pour une démo fiable (soutenance, revue), le plus simple et le
-plus robuste reste de lancer le projet en local.
+## ⚙️ Pipeline MLOps
 
-**Prérequis :** [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+- **Orchestration** : DAG Airflow (environnement local sur WSL2, Ubuntu, Python 3.12, Airflow 2.9.1) pour un **réentraînement bi-hebdomadaire**.
+- **Modèle** : CatBoost, tracké via **MLflow**.
+- **Stockage** : AWS S3 (données et artefacts), NeonDB/PostgreSQL (intégration base de données).
+- **Conteneurisation** : Docker.
 
-1. Copier `.env.example` en `.env` à la racine et renseigner les vraies
-   valeurs (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `DATABASE_URL`)
-2. Depuis la racine du repo :
-   ```bash
-   docker compose up --build
-   ```
-3. Dashboard : http://localhost:8501
-   API : http://localhost:8000 (doc interactive sur `/docs`)
+## 📁 Structure du code
 
-## Démarrage local sans Docker (dev)
+- `extraction.py`, `transform.py`, `load.py`, `modele.py` — pipeline modulaire.
+- `train.py` — entraînement CatBoost/MLflow.
+- `app.py` / `appstlite.py` — applications Streamlit (turnaround-time et dashboard léger).
+- `engine.py` — helpers S3/NeonDB.
+- Notebooks restructurés : `ppml_clean.ipynb`, `humanflyontime.ipynb`.
 
-**API :**
-```bash
-cd api
-pip install -r requirements-api.txt
-uvicorn api:app --reload
-```
+## 👥 Contributions
 
-**Dashboard** (dans un autre terminal, l'API doit tourner) :
-```bash
-cd dashboard
-pip install -r requirements-dashboard.txt
-export FLYONTIME_API_URL=http://localhost:8000
-streamlit run dashboard.py
-```
+Projet réalisé en équipe avec **Patrick**, qui a développé l'intégration base de données NeonDB/PostgreSQL. Débogage conjoint des problèmes de chaîne de connexion (caractères spéciaux, erreurs en lecture seule sur l'endpoint pooler).
 
-**Réentraîner le modèle :**
-```bash
-cd training
-pip install -r requirements-training.txt
-python train.py
-```
+## 📊 Phase de faisabilité (historique)
 
-**Rafraîchir le cache manuellement :**
-```bash
-cd api
-python refresh_cache.py
-```
-
-## Déploiement cloud (optionnel, non finalisé)
-
-`render.yaml` reste dans le repo comme trace d'un plan de déploiement
-Render (2 web services + 1 cron job) abandonné faute de carte bancaire
-validée. Il peut resservir tel quel si cette contrainte est levée plus
-tard. Idem pour une piste Hugging Face Spaces (SDK Docker), également
-bloquée par une exigence de carte bancaire au moment du projet.
-
-## Points d'architecture à retenir
-
-- **Pas de fuite de données** : seules les features connues à J-72h sont
-  utilisées (aucune donnée post-décollage/atterrissage). Voir les
-  commentaires dans `feature_engineering.py`.
-- **Split temporel** (pas aléatoire) pour l'évaluation, avec un gap de
-  sécurité de 3 jours entre train et test — voir `training/train.py`.
-- **Rafraîchissement du cache intégré à l'API** (tâche planifiée toutes les
-  24h via APScheduler) plutôt qu'un cron externe — plus simple dès lors
-  que l'API et le rafraîchissement tournent dans le même conteneur.
-- `feature_engineering.py` est dupliqué entre `api/` et `training/` (deux
-  contextes d'exécution distincts) — à garder synchronisé manuellement, ou
-  à migrer vers un package partagé si le projet grandit.
+Avant l'architecture finale, une phase d'exploration a permis de :
+- Analyser trois datasets sources (mouvements de vols, météo, indices de retard agrégés).
+- Développer des scripts de feature engineering (`feature_engineering_mouvs.py`, `merge_datasets.py`) avec lag features, encodage cyclique et target encoding bayésien.
+- Prototyper un dashboard HTML/JS avec intégration API Open-Meteo et visualisation radar ADS-B (OpenSky Network).
