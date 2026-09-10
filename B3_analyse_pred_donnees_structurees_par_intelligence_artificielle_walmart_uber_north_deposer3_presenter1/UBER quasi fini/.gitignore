@@ -1,0 +1,7 @@
+*.png
+*.pdf
+taxi_zone.ipynb
+uber_2014.ipynb
+uber_2015.ipynb
+uber_baseline.ipynb
+*.csv

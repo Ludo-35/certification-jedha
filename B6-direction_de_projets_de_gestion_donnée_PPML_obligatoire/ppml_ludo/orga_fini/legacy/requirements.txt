@@ -1,0 +1,11 @@
+pandas
+pyarrow
+prophet
+xgboost
+shap
+streamlit
+mlflow
+plotly
+boto3
+psycopg2-binary
+python-dotenv

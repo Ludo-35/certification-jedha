@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+pydantic
+pandas
+pyarrow
+xgboost
+mlflow
+boto3
+psycopg2-binary
+python-dotenv
+apscheduler
+requests
+requests

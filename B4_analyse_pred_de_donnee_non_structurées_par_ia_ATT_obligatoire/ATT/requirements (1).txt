@@ -1,0 +1,11 @@
+cuda-python
+tensorflow-gpu
+jupyterlab
+ipywidgets
+numpy
+pandas
+plotly
+matplotlib
+spacy
+transformers
+scikit-learn

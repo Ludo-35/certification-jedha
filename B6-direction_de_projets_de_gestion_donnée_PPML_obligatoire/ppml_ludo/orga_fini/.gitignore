@@ -1,0 +1,29 @@
+# --- Environnement Python ---
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+.env
+.bat
+
+# --- Données (S3 / Local) ---
+# Bloque tous les fichiers de données lourds à la racine ou dans /data
+*.parquet
+data/
+*.csv
+*.json
+
+# --- MLOps & Logs ---
+# MLflow crée ce dossier localement
+mlruns/
+*.log
+
+# --- IDE & Système ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# --- Docker ---
+.docker/

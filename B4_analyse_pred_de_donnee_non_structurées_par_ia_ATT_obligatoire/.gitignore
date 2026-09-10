@@ -1,0 +1,35 @@
+# --- Sécurité (CRITIQUE) ---
+# Ne jamais uploader tes accès AWS/RDS sur GitHub
+.env
+credentials
+config.py
+__pycache__/
+
+# --- Données Volumineuses ---
+# On évite de stocker les CSV/JSON bruts s'ils font plusieurs Mo
+*.csv
+*.json
+data/
+temp/
+
+# --- Environnement Virtuel ---
+# Pas besoin d'envoyer tout le dossier de l'anaconda ou venv
+venv/
+env/
+.venv/
+.conda/
+bin/
+lib/
+share/
+
+# --- Notebooks et Visualisation ---
+# On garde les .ipynb, mais on ignore les exports HTML si nécessaire
+# (Sauf si tu veux partager tes cartes spécifiquement)
+# carte_top20_hotels.html
+
+# --- Système ---
+.DS_Store
+Thumbs.db
+.ipynb_checkpoints/
+.vscode/
+.idea/

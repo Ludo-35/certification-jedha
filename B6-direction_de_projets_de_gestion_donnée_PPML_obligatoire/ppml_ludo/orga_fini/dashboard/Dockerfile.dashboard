@@ -1,0 +1,16 @@
+# Image pour le dashboard Streamlit (consomme l'API FlyOnTime, aucune
+# logique ML ni connexion base de données ici)
+# Port 7860 par défaut : requis par Hugging Face Spaces (SDK Docker).
+FROM python:3.10-slim
+
+WORKDIR /app
+
+COPY requirements-dashboard.txt .
+RUN pip install --no-cache-dir -r requirements-dashboard.txt
+
+COPY dashboard.py .
+
+EXPOSE 7860
+
+# FLYONTIME_API_URL doit pointer vers l'URL publique du Space de l'API
+CMD streamlit run dashboard.py --server.port ${PORT:-7860} --server.address 0.0.0.0

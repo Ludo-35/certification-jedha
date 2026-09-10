@@ -1,0 +1,54 @@
+# Render Blueprint — FlyOnTime
+# Déploie en une fois : l'API de prédiction, le dashboard, et le job
+# quotidien de rafraîchissement du cache de features.
+#
+# Usage : connecter ce repo sur https://dashboard.render.com/blueprints
+# Les variables marquées sync: false sont à renseigner manuellement dans
+# l'interface Render (secrets — ne jamais les committer).
+
+services:
+  - type: web
+    name: flyontime-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile.api
+    plan: free
+    envVars:
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: AWS_DEFAULT_REGION
+        value: eu-west-3
+      - key: DATABASE_URL
+        sync: false
+
+  - type: web
+    name: flyontime-dashboard
+    runtime: docker
+    dockerfilePath: ./Dockerfile.dashboard
+    plan: free
+    envVars:
+      - key: FLYONTIME_API_URL
+        fromService:
+          name: flyontime-api
+          type: web
+          property: hostport
+        # Render expose l'URL publique du service API sous cette forme ;
+        # si le rendu automatique ne convient pas, remplacer par l'URL
+        # publique complète (https://flyontime-api.onrender.com) à la main.
+
+  - type: cron
+    name: flyontime-refresh-cache
+    runtime: docker
+    dockerfilePath: ./Dockerfile.api
+    dockerCommand: python refresh_cache.py
+    schedule: "0 4 * * *"  # tous les jours à 4h UTC
+    envVars:
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: AWS_DEFAULT_REGION
+        value: eu-west-3
+      - key: DATABASE_URL
+        sync: false

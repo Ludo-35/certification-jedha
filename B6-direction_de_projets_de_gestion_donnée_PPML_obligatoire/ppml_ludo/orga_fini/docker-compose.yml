@@ -1,0 +1,54 @@
+# Lance l'API et le dashboard ensemble, en local — utile pour une démo
+# fiable en soutenance, sans dépendre d'un hébergeur cloud.
+#
+# Usage (depuis la racine du repo) :
+#   docker compose up --build
+# Puis ouvrir http://localhost:8501 (dashboard) — l'API répond sur
+# http://localhost:8000 (voir http://localhost:8000/docs pour Swagger).
+#
+# Les secrets (AWS_*, DATABASE_URL) sont lus depuis un fichier .env à la
+# racine du repo (jamais commité — voir .gitignore) :
+#   AWS_ACCESS_KEY_ID=...
+#   AWS_SECRET_ACCESS_KEY=...
+#   AWS_DEFAULT_REGION=eu-west-3
+#   DATABASE_URL=postgresql://...
+#
+# Le contexte de build de l'api est la racine du repo (pas api/) car le
+# Dockerfile a besoin d'accéder à model/ et cache/, qui vivent à la racine,
+# à côté de api/ — pas dedans.
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: api/Dockerfile.api
+    ports:
+      - "8000:7860"
+    environment:
+      - PORT=7860
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-eu-west-3}
+      - DATABASE_URL=${DATABASE_URL}
+      - AERODATABOX_API_KEY=${AERODATABOX_API_KEY}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:7860/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  dashboard:
+    build:
+      context: ./dashboard
+      dockerfile: Dockerfile.dashboard
+    ports:
+      - "8501:7860"
+    environment:
+      - PORT=7860
+      - FLYONTIME_API_URL=http://api:7860
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
