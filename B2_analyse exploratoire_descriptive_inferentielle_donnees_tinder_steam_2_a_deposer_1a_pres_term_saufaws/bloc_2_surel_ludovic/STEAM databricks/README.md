@@ -25,5 +25,5 @@ Réaliser une analyse exploratoire (EDA) du catalogue Steam en exploitant un env
 
 ##  Livrables
 
-- Notebook d'analyse exploratoire PySpark/Databricks
-- Présentation orale (soutenance) devant un jury
+- Notebook d'analyse exploratoire PySpark/Databricks consultable : https://dbc-960b5442-7d50.cloud.databricks.com/editor/notebooks/3009768515158580?o=7474655581402186
+- Projet disponible sur https://github.com/Ludo-35/certification-jedha/tree/main/B2_analyse%20exploratoire_descriptive_inferentielle_donnees_tinder_steam_2_a_deposer_1a_pres_term_saufaws/STEAM%20databricks
